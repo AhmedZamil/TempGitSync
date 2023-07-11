@@ -1,0 +1,155 @@
+﻿@page "/role-management"
+@inject IRoleService roleService
+@inject IUserService userService
+@inject AuthenticationStateProvider authenticationStateProvider
+
+<h3>Role Management</h3>
+
+@if (users == null)
+{
+    <p>Loading data...</p>
+}
+else if (users.Any())
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Current Role</th>
+                <th>Permissions</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.UserName</td>
+                    <td>@user.Role.RoleName</td>
+                    <td>
+                        <button class="btn btn-secondary" @onclick="() => ShowPermissionsModal(user.Role.RolePermissions)">Show</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => ShowAssignRoleModal(user)">Reassign</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (showAssignRoleModal)
+    {
+        <div class="modal" style="display: block;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Assign Role</h5>
+                        <button type="button" class="btn-close" @onclick="CloseAssignRoleModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="roleDropdown">Select Role:</label>
+                            <select id="roleDropdown" class="form-control" @bind="@selectedRole.RoleId">
+                                @foreach (var role in roles)
+                                {
+                                    <option value="@role.RoleId">@role.RoleName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" @onclick="SaveAssignedRole">Save</button>
+                        <button type="button" class="btn btn-secondary" @onclick="CloseAssignRoleModal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Permissions Modal -->
+    @if (showPermissionsModal)
+    {
+        <div class="modal" style="display: block;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Role Permissions</h5>
+                        <button type="button" class="btn-close" @onclick="ClosePermissionsModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6>Permissions:</h6>
+                        <ul>
+                            @foreach (var permission in selectedPermissions)
+                            {
+                                <li>@permission.Permission</li>
+                            }
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="ClosePermissionsModal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <p>No users found.</p>
+}
+
+@code {
+    List<Role> roles;
+    List<User> users;
+    bool showAssignRoleModal;
+    Role selectedRole;
+    User selectedUser;
+
+    bool showPermissionsModal;
+    List<RolePermission> selectedPermissions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        roles = await roleService.GetRoles();
+        users = await userService.GetUsers();
+    }
+
+    private void ShowAssignRoleModal(User user)
+    {
+        selectedUser = user;
+        selectedRole = roles.FirstOrDefault(r => r.RoleId == user.RoleId);
+        showAssignRoleModal = true;
+    }
+
+    private void CloseAssignRoleModal()
+    {
+        showAssignRoleModal = false;
+        selectedRole = null;
+        selectedUser = null;
+    }
+
+    private void ShowPermissionsModal(List<RolePermission> permissions)
+    {
+        selectedPermissions = permissions;
+        showPermissionsModal = true;
+    }
+
+    private void ClosePermissionsModal()
+    {
+        showPermissionsModal = false;
+        selectedPermissions = null;
+    }
+
+    private async Task SaveAssignedRole()
+    {
+        if (selectedRole != null && selectedUser != null)
+        {
+            selectedUser.RoleId = selectedRole.RoleId;
+            await roleService.UpdateUserRole(selectedUser);
+            users = await userService.GetUsers();
+            roles = await roleService.GetRoles();
+
+            CloseAssignRoleModal();
+        }
+    }
+}

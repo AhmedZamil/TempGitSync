@@ -1,0 +1,136 @@
+﻿@page "/usermanagement"
+@page "/usermanagement/{UserCode?}"
+@using ComplianceMan.Common.Models
+@using ComplianceMan.Services
+@using ComplianceMan.Services.Interfaces
+@inject NavigationManager navigationManager
+
+<h3>User Management</h3>
+
+@if (users != null && roles != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>User Name</th>
+                <th>User Code</th>
+                <th>Role</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.UserName</td>
+                    <td>@user.UserCode</td>
+                    @*<td>@user.Role?.RoleName</td>*@
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+<div class="row justify-content-center form-bg-image" data-background-lg="../../assets/img/illustrations/signin.svg">
+    <div class="col-12 d-flex align-items-center justify-content-center">
+        <div class="bg-white shadow border-0 rounded border-light p-4 p-lg-5 w-100 fmxw-500">
+            <div class="text-center text-md-center mb-4 mt-md-0">
+                <h1 class="mb-0 h3">Create User</h1>
+            </div>
+            <form class="mt-4">
+                <div class="form-group mb-4">
+                    <label for="userName">User Name</label>
+                    <input type="text" class="form-control" @bind="newUserName" placeholder="User Name" id="userName" autofocus required />
+                </div>
+
+                <div class="form-group mb-4">
+                    <label for="userCode">User Code</label>
+                    <input type="text" class="form-control" @bind="newUserCode" placeholder="User Code" id="userCode" required />
+                </div>
+
+                <div class="form-group mb-4">
+                    <label for="userRole">Role</label>
+                    <select class="form-control" @bind="newUserRole" id="userRole">
+                        <option value="">Select Role</option>
+                        @if (roles != null)
+                        {
+                            @foreach (var role in roles)
+                            {
+                                <option value="@role.RoleId">@role.RoleName</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-gray-800" @onclick="CreateUser">Create</button>
+                </div>
+            </form>
+
+            <div class="d-flex justify-content-center my-4">
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<User> users;
+    private List<Role> roles;
+    private string newUserName;
+    private string newUserCode;
+    private int newUserRole;
+    private User CurrentUser { get; set; }
+
+    [Parameter]
+    public string UserCode { get; set; }
+
+    [Inject]
+    private IUserService userService { get; set; }
+
+    [Inject]
+    private IRoleService roleService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = await userService.GetUsers();
+        roles = await roleService.GetRoles();
+
+        CurrentUser = await userService.GetUserByUserCode(UserCode);
+
+        if (CurrentUser is not null)
+        {
+            navigationManager.NavigateTo("/dashboard");
+        
+        }
+        // Set the value of newUserCode if UserCode parameter has a value
+        if (!string.IsNullOrWhiteSpace(UserCode))
+        {
+            newUserCode = UserCode;
+        }
+    }
+
+    private async Task CreateUser()
+    {
+        if (!string.IsNullOrWhiteSpace(newUserName) && !string.IsNullOrWhiteSpace(newUserCode) && newUserRole != 0)
+        {
+            User newUser = new User
+                {
+                    UserName = newUserName,
+                    UserCode = newUserCode,
+                    RoleId = newUserRole
+                };
+
+
+            await userService.CreateUser(newUser);
+            return ;
+        }
+    }
+
+    private async Task UserCreated()
+    {
+        await Task.Delay(100); // Delay to allow the UI to update before raising the event
+        navigationManager.NavigateTo("/dashboard");
+    }
+}

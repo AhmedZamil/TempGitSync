@@ -1,0 +1,37 @@
+﻿@page "/usercompliance/{userId:int}"
+@using ComplianceMan.Common.Models
+@using ComplianceMan.Services
+@using ComplianceMan.Services.Interfaces;
+
+<h3>User Compliance</h3>
+
+@if (user != null)
+{
+    <h4>@user.UserName</h4>
+
+    <h5>Assigned Policies:</h5>
+    @if (user.UserPolicies != null)
+    {
+        <ul>
+            @foreach (var userPolicy in user.UserPolicies)
+            {
+                <li>@userPolicy.Policy.PolicyName</li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    private User user;
+
+    [Parameter]
+    public int UserId { get; set; }
+
+    [Inject]
+    private IUserService userService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await userService.GetUserCompliance(UserId);
+    }
+}

@@ -1,0 +1,38 @@
+﻿@page "/teamcompliance/{teamId:int}"
+@using ComplianceMan.Common.Models
+@using ComplianceMan.Services
+@using ComplianceMan.Services.Interfaces;
+
+<h3>Team Compliance</h3>
+
+@if (team != null)
+{
+    <h4>@team.TeamName</h4>
+
+    <h5>Assigned Policies:</h5>
+    @if (team.Policies != null)
+    {
+        <ul>
+            @foreach (var policy in team.Policies)
+            {
+                <li>@policy.PolicyName</li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    private Team team;
+
+    [Parameter]
+    public int TeamId { get; set; }
+
+    [Inject]
+    private ITeamService teamService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        team = await teamService.GetTeamCompliance(TeamId);
+    }
+}
+

@@ -1,0 +1,115 @@
+﻿@page "/assign-roles"
+@inject IRoleService roleService
+@inject IUserService userService
+@inject AuthenticationStateProvider authenticationStateProvider
+
+<h3>Assign Roles</h3>
+
+@if (users == null)
+{
+    <p>Loading users...</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.UserName</td>
+                    <td>
+                        <select value="@user.RoleId" @onchange="eventArgs => AssignRole(user, int.Parse(eventArgs.Value.ToString()))">
+                            @foreach (var role in roles)
+                            {
+                                <option value="@role.RoleId">@role.RoleName</option>
+                            }
+                        </select>
+                    </td>
+                    <td>
+                        @if (IsEditEnable)
+                        {
+                            <button @onclick="eventArgs => SaveChanges(user)">Save</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    List<User> users;
+    List<Role> roles;
+    ClaimsPrincipal currentUser;
+
+    private bool IsEditEnable = false;
+    private string currentUserCode;
+
+    private User CurrentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = await userService.GetUsers();
+        roles = await roleService.GetRoles();
+        var user = (await authenticationStateProvider.GetAuthenticationStateAsync()).User;
+
+
+        if (user.Identity.IsAuthenticated)
+        {
+            try
+            {
+                currentUserCode = user.FindFirstValue(ClaimTypes.NameIdentifier);
+                CurrentUser = await userService.GetUserByUserCode(currentUserCode);
+                if (CurrentUser is not null)
+                {
+                    IsEditEnable = await CanEditUserRoles(CurrentUser.UserId);
+                    IsEditEnable = true;
+                }
+                else
+                {
+                    IsEditEnable = false;
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+
+
+            }
+
+        }
+
+
+    }
+
+    private async Task AssignRole(User user, int roleId)
+    {
+        user.RoleId = roleId;
+    }
+
+    private async Task SaveChanges(User user)
+    {
+        //if (await CanEditUserRoles(user.UserId))
+        //{
+        //    await roleService.UpdateUserRole(user);
+        //}
+
+        if (true)
+        {
+            await roleService.UpdateUserRole(user);
+        }
+    }
+
+    private async Task<bool> CanEditUserRoles(int userId)
+    {
+        return await roleService.CheckUserHasAccess(userId, "EditUserRoles");
+    }
+}

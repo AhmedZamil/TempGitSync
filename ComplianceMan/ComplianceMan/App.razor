@@ -1,0 +1,239 @@
+﻿@using Microsoft.AspNetCore.Authentication;
+@using System.Security.Cryptography;
+@using Microsoft.AspNetCore.WebUtilities;
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IConfiguration Configuration
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+
+                <NotAuthorized>
+<section class="vh-lg-100 mt-5 mt-lg-0 bg-soft d-flex align-items-center">
+    <div class="container">
+        <p class="text-center">
+            <a href="/" class="d-flex align-items-center justify-content-center">
+                <svg class="icon icon-xs me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
+                Back to homepage
+            </a>
+        </p>
+        <div class="row justify-content-center form-bg-image" data-background-lg="../../assets/img/illustrations/signin.svg">
+            <div class="col-12 d-flex align-items-center justify-content-center">
+                <div class="bg-white shadow border-0 rounded border-light p-4 p-lg-5 w-100 fmxw-500">
+                    <div class="text-center text-md-center mb-4 mt-md-0">
+                        <h1 class="mb-0 h3">Sign in to our platform</h1>
+                    </div>
+                    <div class="mt-3 mb-4 text-center">
+                        <span class="fw-normal">or login with</span>
+                    </div>
+                    <div class="d-flex justify-content-center my-4">
+
+
+
+                    </div>
+                    <div class="d-flex justify-content-center align-items-center mt-4">
+                                            <a class="btn btn-tertiary btn-gray-800" href="/loginidp?provider=@Provider"> Authorize with @Provider</a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+                </NotAuthorized>
+
+
+
+@*
+                <NotAuthorized>
+                    <p>un authorize</p>
+                    <div class="limiter">
+                        <div class="container-login100" style="background-image: url('images/bg-01.jpg');">
+                            <div class="wrap-login100">
+                                <form class="login100-form validate-form">
+                                    <span class="login100-form-logo">
+                                        <i class="zmdi zmdi-landscape"></i>
+                                    </span>
+
+                                    <span class="login100-form-title p-b-34 p-t-27">
+                                        You are unauthorized !
+                                    </span>
+
+                                    <span class="login100-form-title p-b-34 p-t-27">
+                                        Log in
+                                    </span>
+                                    @if (Provider == "Auth0")
+                                    {
+                                            <div class="container-login100-form-btn">
+                                                <a class="btn btn-success" href="/loginidp?provider=@Provider"> Login with @Provider</a>
+
+                                            </div>
+
+                                    }
+                                    else
+                                    {
+                                            <div class="container-login100-form-btn">
+                                                <a class="btn btn-success" href="/loginidp?provider=@Provider"> Login with @Provider</a>
+
+                                            </div>
+
+                                    }
+
+
+
+                                    <div class="text-center p-t-90">
+                                        <p class="display-10">You are not authorize</p>
+                                        <p>Note that : After authentication you need to create user to access Dashboard..</p>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <p>You may want to try logging in (as someone with the necessary authorization).</p>
+                    <div>
+                    </div>
+                </NotAuthorized>*@
+            </AuthorizeRouteView>
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p>Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+
+@code {
+    [Parameter]
+    public string Provider { get; set; }
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Provider = Configuration["OAuthProvider:Name"];
+    }
+
+    private void LoginAzureAD()
+    {
+
+        NavigationManager.NavigateTo("AzureAD");
+    }
+
+    private async Task HandleLogin(string provider)
+    {
+
+        var redirectUri = NavigationManager.Uri;
+
+        var authenticationUrl = $"authentication/google?redirectUri={redirectUri}";
+        var properties = new AuthenticationProperties { RedirectUri = redirectUri };
+
+        NavigationManager.NavigateTo(authenticationUrl);
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            // User is already authenticated, redirect to the home page or any other protected page
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            // User is not authenticated, initiate authentication for the selected provider
+            var authProps = new AuthenticationProperties
+                {
+                    RedirectUri = NavigationManager.Uri, // Redirect back to the current URL after successful login
+                    IsPersistent = true // Set to true if you want to persist the user's login session
+                };
+
+            // Clear any existing authentication state
+            //await AuthenticationStateProvider.ClearAuthenticationStateAsync();
+
+            // Redirect the user to the corresponding authentication route based on the provider
+            switch (provider)
+            {
+                case "AzureAD":
+                    NavigationManager.NavigateTo("/signin-azuread");
+                    break;
+                case "Google":
+                    NavigationManager.NavigateTo("/signin-google");
+                    break;
+                case "GitHub":
+                    NavigationManager.NavigateTo("/signin-github");
+                    break;
+                // Add more cases for additional providers if needed
+                default:
+                    // Invalid provider
+                    break;
+            }
+        }
+    }
+
+    private void LoginGoogle()
+    {
+
+        var clientId = "168729315242-0cp04o4nnv9h2vn5ll0l42fjmg7pu9sl.apps.googleusercontent.com";
+        var redirectUri = "https://localhost:5000/signin-google";
+        var responseType = "code";
+        var scope = "openid profile email";
+        var state = Guid.NewGuid().ToString();
+
+
+        var authenticationUrl = $"https://accounts.google.com/v3/signin/identifier" +
+        $"?dsh=S855713752:1685309486218975" +
+        $"&client_id={clientId}" +
+        $"&o2v=2" +
+        $"&redirect_uri={redirectUri}" +
+        $"&response_type=code" +
+        $"&scope=openid%20profile%20email" +
+        $"&service=lso" +
+        $"&state={state}" +
+        $"&flowName=GeneralOAuthFlow" +
+        $"&continue=https://accounts.google.com/signin/oauth/consent?authuser=unknown&part=AJi8hAOvrDp-LkHayXPAMDIGzA35NhZ0Ub7MDbenBMrs1WWRK_iwmkAR4yh53gYpMGn6D_S4h8td62DnnvcXU1uWmUhByVaM_bE_RI7SRFyJjvW2LxDz3INaG_LBsSFLLihSSpvnoju2nUNjYWC9E1hgbozl6i7VurB2Nvn9x0Ljr4ja4kGQhy73tETyDjYUeYMb3jXNVNp5DcA6E4tDGodroWkk1UhZhJXGuvNzfANakPgrMM9tCIUkSZoa5_2oTgzQ2UYHbH8K6wrU633qDA0fvruC9tJz1olDZC_vhktJ4nKEc37XajUkrmD2smYmcgJpkCQCw-osZK4AtJcMzb2ZFiKpzlJkRtfaT47BWk7O2wiD4VXn6ooqn53SQeclEUy2tcIYFBzhvEIpwRrjbPtW-VBXogaGPgD1Ytfsx4xgWu4kkcCFGBBip3vL4nmsbiQywer-42CrqaYwGv98WU-oxBlFh7CJfQ" +
+        $"&app_domain=https://localhost:5000" +
+        $"&rart=ANgoxceF8JgZGIljTAY065sbame6wGeFsDmPMmKQSBMYvSNkNi20iHm0-ygbpQjP76dOF8H8tfRasn2m02Ko_pMIHIqm3aGMrw";
+
+
+
+
+        //    var state = "&state="+ GenerateState();
+
+        //    var authenticationUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
+        //"?client_id=168729315242-0cp04o4nnv9h2vn5ll0l42fjmg7pu9sl.apps.googleusercontent.com" +
+        //"&redirect_uri=" + Uri.EscapeDataString(NavigationManager.BaseUri + "signin-google") +
+        //"&response_type=code" +
+        //"&scope=openid%20profile%20email" + state;
+
+        NavigationManager.NavigateTo(authenticationUrl, forceLoad: true);
+        //var clientId = "168729315242-0cp04o4nnv9h2vn5ll0l42fjmg7pu9sl.apps.googleusercontent.com";
+        //var redirectUri = "https://localhost:5000/signin-google";
+        //var responseType = "code";
+        //var scope = "openid profile email";
+        //var state = GenerateState();
+
+        //var authenticationUrl = $"https://accounts.google.com/v3/signin/identifier?client_id={clientId}&redirect_uri={redirectUri}&response_type={responseType}&scope={scope}&state={state}";
+
+        //NavigationManager.NavigateTo(authenticationUrl, forceLoad: true);
+        //NavigationManager.NavigateTo("Google");
+    }
+
+    private string GenerateState()
+    {
+        var randomBytes = new byte[32];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(randomBytes);
+        }
+
+        return WebEncoders.Base64UrlEncode(randomBytes);
+    }
+
+    private void LoginGitHub()
+    {
+        var name = Configuration["OAuthProvider:Name"];
+        NavigationManager.NavigateTo("GitHub");
+    }
+}

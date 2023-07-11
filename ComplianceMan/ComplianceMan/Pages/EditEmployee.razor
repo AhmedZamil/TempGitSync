@@ -1,0 +1,102 @@
+﻿@page "/employees/edit/{employeeid:int?}"
+
+@inject IDbContextFactory<ComplianceManDbContext> ContextFactory
+@inject NavigationManager NavigationManager
+@inject StateContainer StateContainer
+
+<h1>Edit Employee</h1>
+
+
+@if (Employee is null && !IsBusy)
+{
+    <div class="alert alert-danger"> Employee with id @EmployeeId is not found !</div>
+
+}
+else
+{
+    <EmployeeForm Employee="@Employee"
+              IsBusy="@IsBusy"
+              Departments="@Departments"
+              IsEdit="true" OnSubmit="@HandleSubmit" 
+              OnCancel="NavigateToOverViewPage"/>
+}
+
+@if (ErrorMessage is not null)
+{
+    <hr />
+    <div class="alert alert-danger">@ErrorMessage</div>
+    
+}
+
+
+
+@code {
+
+    [Parameter]
+    public int EmployeeId { get; set; }
+
+    private Employee? Employee { get; set; }
+    private Department[]? Departments { get; set; }
+
+    private bool IsBusy { get; set; }
+    private string? ErrorMessage { get; set; }
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        IsBusy = true;
+
+        try
+        {
+            using var context = ContextFactory.CreateDbContext();
+
+            Departments = await context.Departments.OrderBy(dep => dep.Name).ToArrayAsync();
+            Employee = await context.Employees.FirstOrDefaultAsync(emp => emp.Id == EmployeeId);
+        }
+        finally
+        {
+            IsBusy = false;
+
+        }
+
+    }
+
+    private async Task HandleSubmit(bool isValid)
+    {
+
+        if (Employee is null || IsBusy || !isValid)
+        {
+            ErrorMessage = null;
+            return;
+        }
+
+        IsBusy = true;
+        Employee.Department = null;
+        try
+        {
+            using var context = ContextFactory.CreateDbContext();
+            context.Update(Employee);
+            await context.SaveChangesAsync();
+
+            NavigateToOverViewPage();
+
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error While saving {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+
+    }
+
+    private void NavigateToOverViewPage()
+    {
+        NavigationManager.NavigateTo($"/employees/list/{StateContainer.CurrentOverviewPage}");
+
+    }
+
+}

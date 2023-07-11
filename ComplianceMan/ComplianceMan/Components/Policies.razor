@@ -1,0 +1,369 @@
+﻿@page "/policyonly"
+@using ComplianceMan.Services.Interfaces
+@using System.Security.Claims
+
+@inject IPolicyService PolicyService
+@inject IUserPolicyService UserPolicyService
+@inject ITeamService TeamService
+@inject IFileService FileService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.AspNetCore.Components.Forms
+
+
+
+
+<!-- Add policy button -->
+<button class="btn btn-primary" @onclick="ShowAddPolicyModal">Add Policy</button>
+@*
+@if (showAddPolicyModal)
+{
+        <div class="modal" tabindex="-1" style="display:block;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-body p-0">
+                    <div class="card p-3 p-lg-4">
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close" @onclick="HideAddPolicyModal"></button>
+                        <div class="text-center text-md-center mb-4 mt-md-0">
+                            <h1 class="mb-0 h4">Add Policy</h1>
+                        </div>
+                        <form class="mt-4" @onsubmit="CreatePolicy">
+                            <div class="form-group mb-4">
+                                <label for="policyName">Policy Name:</label>
+                                <div class="input-group">
+                                    <span class="input-group-text" id="basic-addon1">
+                                        <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
+                                    </span>
+                                    <input type="text" class="form-control" placeholder="Policy Name" id="policyName" @bind="newPolicy.PolicyName" required>
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Create Policy</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+*@
+
+
+<!-- Add policy modal -->
+<!-- Add policy modal -->
+<!-- Add policy modal -->
+@if (showAddPolicyModal)
+{
+    <div class="modal" tabindex="-1" style="display:block;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-body p-0">
+                    <div class="card p-3 p-lg-4">
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close" @onclick="HideAddPolicyModal"></button>
+                        <div class="text-center text-md-center mb-4 mt-md-0">
+                            <h1 class="mb-0 h4">Add Policy</h1>
+                        </div>
+                        <form class="mt-4" @onsubmit="CreatePolicy" enctype="multipart/form-data">
+                            <div class="form-group mb-4">
+                                <label for="policyName">Policy Name:</label>
+                                <div class="input-group">
+                                    <span class="input-group-text" id="basic-addon1">
+                                        <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
+                                    </span>
+                                    <input type="text" class="form-control" placeholder="Policy Name" id="policyName" @bind="newPolicy.PolicyName" required>
+                                </div>
+                            </div>
+                            <div class="form-group mb-4">
+                                <label for="fileInput">File:</label>
+                                @*<InputFile id="fileInput" class="form-control-file" @onchange="fileChangeCallback" />*@
+
+
+
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Create Policy</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+<h3>Policies</h3>
+
+@if (policies != null && policies.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Policy Title</th>
+                <th>Description</th>
+                <th>Acceptance Date</th>
+                <th>Team</th>
+                <th>Files</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var policy in policies)
+            {
+                <tr>
+                    <td>@policy.PolicyName</td>
+                    <td>@policy.Description</td>
+                    <td>@GetAcceptanceDate(policy)</td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => ShowTeamModal(policy)">See Team</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => ShowFilesModal(policy)">See Files</button>
+                    </td>
+                    <td>
+                        @if (IsPolicyAccepted(policy))
+                        {
+                            <span class="accepted-label">Accepted</span>
+                        }
+                        else
+                        {
+                            <button class="btn btn-primary" @onclick="() => AcceptPolicy(policy.PolicyId)">Accept</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No policies found.</p>
+}
+
+<!-- Team Modal -->
+<div class="modal" tabindex="-1" role="dialog" style="@teamModalStyle">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="teamModalLabel">Team Members</h5>
+                <button type="button" class="close" @onclick="CloseTeamModal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                @if (selectedPolicy != null)
+                {
+                    <p>Team members associated with policy: @selectedPolicy.PolicyName</p>
+                    @if (teams != null && teams.Any())
+                    {
+                        <ul>
+                            @foreach (var team in teams)
+                            {
+                                <li>@team.TeamName</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p>No team members found.</p>
+                    }
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseTeamModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Files Modal -->
+<div class="modal" tabindex="-1" role="dialog" style="@filesModalStyle">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filesModalLabel">Policy Files</h5>
+                <button type="button" class="close" @onclick="CloseFilesModal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                @if (selectedPolicy != null)
+                {
+                    <p>Files associated with policy: @selectedPolicy.PolicyName</p>
+                    @if (policyFiles != null && policyFiles.Any())
+                    {
+                        <ul>
+                            @foreach (var file in policyFiles)
+                            {
+                                <li>@file.FileName</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p>No files found.</p>
+                    }
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseFilesModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Policy> policies;
+    private List<UserPolicy> userPolicies;
+    private List<Team> teams;
+    private List<FileCM> policyFiles;
+    private Policy selectedPolicy;
+    private User currentUser;
+    Policy newPolicy = new Policy();
+
+    private FileCM selectedFile;
+
+    private string currentUserCode;
+
+    bool showAddPolicyModal = false;
+    //private FileCM selectedFile;
+
+    private EventCallback<InputFileChangeEventArgs> fileChangeCallback;
+
+    [Inject]
+    private IUserService userService { get; set; }
+
+    [Inject]
+    private IPolicyService policyService { get; set; }
+
+    private string teamModalStyle = "display: none;";
+    private string filesModalStyle = "display: none;";
+
+    protected override async Task OnInitializedAsync()
+    {
+        policies = await PolicyService.GetPolicies();
+
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authenticationState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            currentUserCode = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            currentUser = await userService.GetUserByUserCode(currentUserCode);
+            userPolicies = await UserPolicyService.GetUserPolicies(currentUser.UserId);
+        }
+
+        //fileChangeCallback = EventCallback.Factory.Create(this, HandleFileChangeWrapper);
+        fileChangeCallback = EventCallback.Factory.Create<InputFileChangeEventArgs>(this, HandleFileChangeWrapper);
+    }
+
+
+    private async Task HandleFileChangeWrapper(InputFileChangeEventArgs e)
+    {
+        await HandleFileChange(e);
+    }
+
+    private async Task HandleFileChangeCallback(InputFileChangeEventArgs e)
+    {
+        await HandleFileChange(e);
+    }
+
+    private async Task HandleFileChange(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (file != null)
+        {
+            selectedFile = new FileCM
+                {
+                    FileName = file.Name,
+                    FileData = await ConvertFileToByteArray(file)
+                };
+        }
+    }
+
+
+    private async Task<byte[]> ConvertFileToByteArray(IBrowserFile file)
+    {
+        using var memoryStream = new MemoryStream();
+        await file.OpenReadStream().CopyToAsync(memoryStream);
+        return memoryStream.ToArray();
+    }
+
+
+
+    private bool IsPolicyAccepted(Policy policy)
+    {
+        if (userPolicies != null && userPolicies.Any())
+        {
+            return userPolicies.Any(up => up.PolicyId == policy.PolicyId);
+        }
+        return false;
+    }
+
+    private string GetAcceptanceDate(Policy policy)
+    {
+        var userPolicy = userPolicies?.FirstOrDefault(up => up.PolicyId == policy.PolicyId);
+        return userPolicy != null ? userPolicy.AcceptanceDate.ToShortDateString() : string.Empty;
+    }
+
+    private async Task AcceptPolicy(int policyId)
+    {
+        if (currentUser != null)
+        {
+            await PolicyService.AcceptPolicy(policyId, currentUser.UserId);
+            userPolicies = await UserPolicyService.GetUserPolicies(currentUser.UserId);
+        }
+    }
+
+    private async Task CreatePolicy()
+    {
+        await policyService.CreatePolicy(newPolicy);
+        newPolicy = new Policy(); // Clear the form
+        policies = await policyService.GetPolicies(); // Refresh the policy list
+        HideAddPolicyModal(); // Hide the modal after creating a policy
+    }
+
+    private void ShowAddPolicyModal()
+    {
+        showAddPolicyModal = true;
+    }
+
+    private void HideAddPolicyModal()
+    {
+        showAddPolicyModal = false;
+    }
+
+    //private async void ShowTeamModal(Policy policy)
+    //{
+    //    selectedPolicy = policy;
+    //    teams = await TeamService.GetTeamsByPolicy(policy.PolicyId);
+    //    teamModalStyle = "display: block;";
+    //}
+
+    private async Task ShowTeamModal(Policy policy)
+    {
+        selectedPolicy = policy;
+        teams = await TeamService.GetTeamsByPolicy(policy.PolicyId);
+        teamModalStyle = "display: block;";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ShowFilesModal(Policy policy)
+    {
+        selectedPolicy = policy;
+        policyFiles = await FileService.GetPolicyFiles(policy.PolicyId);
+        filesModalStyle = "display: block;";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void CloseTeamModal()
+    {
+        teamModalStyle = "display: none;";
+    }
+
+    private void CloseFilesModal()
+    {
+        filesModalStyle = "display: none;";
+    }
+}

@@ -1,0 +1,41 @@
+﻿@page "/team-management"
+@using ComplianceMan.Services.Interfaces;
+
+<h3>Team Management</h3>
+
+<!-- Display a list of teams -->
+@foreach (var team in teams)
+{
+    <p>@team.TeamName</p>
+}
+
+<!-- Form to create a new team -->
+
+<h4>Create Team</h4>
+
+<form @onSubmit="CreateTeam">
+    <input type="text" @bind="newTeamName" placeholder="Enter team name" />
+    <button type="submit">Create</button>
+</form>
+
+@code {
+    List<Team> teams;
+    string newTeamName;
+
+    [Inject]
+    private ITeamService teamService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        teams = await teamService.GetTeams();
+    }
+
+    async Task CreateTeam()
+    {
+        var newTeam = new Team { TeamName = newTeamName };
+        await teamService.CreateTeam(newTeam);
+
+        newTeamName = string.Empty;
+        teams = await teamService.GetTeams();
+    }
+}

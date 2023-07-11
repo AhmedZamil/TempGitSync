@@ -1,0 +1,107 @@
+﻿@page "/createpolicy"
+@using ComplianceMan.Services.Interfaces
+
+@inject IPolicyService PolicyService
+@inject NavigationManager NavigationManager
+
+<h1>Create Policy</h1>
+
+<div class="modal" tabindex="-1" style="display:block;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body p-0">
+                <div class="card p-3 p-lg-4">
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close" @onclick="HideCreatePolicyModal"></button>
+                    <div class="text-center text-md-center mb-4 mt-md-0">
+                        <h1 class="mb-0 h4">Add Policy</h1>
+                    </div>
+                    <form class="mt-4" @onsubmit="CreatePolicy" enctype="multipart/form-data">
+                        <div class="form-group mb-4">
+                            <label for="policyName">Policy Name:</label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="basic-addon1">
+                                    <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
+                                </span>
+                                <input type="text" class="form-control" placeholder="Policy Name" id="policyName" @bind="newPolicy.PolicyName" required>
+                            </div>
+                        </div>
+                        <div class="form-group mb-4">
+                            <label for="description">Description:</label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="basic-addon1">
+                                    <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
+                                </span>
+                                <input type="text" class="form-control" placeholder="Policy Name" id="description" @bind="newPolicy.Description" required>
+                            </div>
+                        </div>
+                        <div class="form-group mb-4">
+                            <label for="fileInput">File:</label>
+                            <InputFile id="fileInput" class="form-control-file" OnChange="HandleFileChange" />
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-tertiary">Create Policy</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnPolicyCreated { get; set; }
+
+    private Policy newPolicy = new Policy();
+    private IBrowserFile policyFile;
+    private FileCM newFile = new FileCM();
+
+    private async Task CreatePolicy()
+    {
+        if (policyFile != null)
+        {
+            // Upload the file
+            using (var stream = policyFile.OpenReadStream())
+            {
+                var fileData = new byte[stream.Length];
+                await stream.ReadAsync(fileData, 0, (int)stream.Length);
+                newFile.FileData = fileData;
+                newFile.FileName = policyFile.Name;
+            }
+        }
+
+        await PolicyService.CreatePolicy(newPolicy);
+
+        await OnPolicyCreated.InvokeAsync();
+        NavigationManager.NavigateTo("/policylist");
+
+    }
+
+    private void HideCreatePolicyModal()
+    {
+        NavigationManager.NavigateTo("/policylist"); // Redirect to policy list page
+    }
+
+    private async Task HandleFileChange(InputFileChangeEventArgs e)
+    {
+        policyFile = e.File;
+        var file = e.File;
+
+        if (file != null)
+        {
+            var fileData = new byte[file.Size];
+            await using var memoryStream = new MemoryStream();
+            await file.OpenReadStream().CopyToAsync(memoryStream);
+            fileData = memoryStream.ToArray();
+
+            var newFile = new FileCM
+                {
+                    FileName = file.Name,
+                    FileData = fileData
+                };
+
+            newPolicy.Files.Add(newFile);
+        }
+
+    }
+}

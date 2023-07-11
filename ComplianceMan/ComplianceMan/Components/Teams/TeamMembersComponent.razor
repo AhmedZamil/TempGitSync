@@ -1,0 +1,39 @@
+﻿@page "/teams/{teamId}/members"
+@inject ITeamService teamService
+
+<h3>Team Members</h3>
+
+@if (teamMembers != null)
+{
+    <table>
+        <thead>
+            <tr>
+                <th>User Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var member in teamMembers)
+            {
+                <tr>
+                    <td>@member.UserName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No members found.</p>
+}
+
+@code {
+    private List<User> teamMembers;
+
+    [Parameter]
+    public int TeamId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        teamMembers = await teamService.GetTeamMembers(TeamId);
+    }
+}

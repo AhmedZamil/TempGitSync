@@ -1,0 +1,48 @@
+﻿@page "/policydetails/{policyId:int}"
+@using ComplianceMan.Common.Models
+@using ComplianceMan.Services
+@using ComplianceMan.Services.Interfaces;
+
+<h3>Policy Details</h3>
+
+@if (policy != null)
+{
+    <h4>@policy.PolicyName</h4>
+
+    <h5>Assigned Users:</h5>
+    @if (policy.UserPolicies != null)
+    {
+        <ul>
+            @foreach (var userPolicy in policy.UserPolicies)
+            {
+                <li>@userPolicy.User.UserName</li>
+            }
+        </ul>
+    }
+
+    <h5>Assigned Teams:</h5>
+    @if (policy.Teams != null)
+    {
+        <ul>
+            @foreach (var team in policy.Teams)
+            {
+                <li>@team.TeamName</li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    private Policy policy;
+
+    [Parameter]
+    public int PolicyId { get; set; }
+
+    [Inject]
+    private IPolicyService policyService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        policy = await policyService.GetPolicyDetails(PolicyId);
+    }
+}

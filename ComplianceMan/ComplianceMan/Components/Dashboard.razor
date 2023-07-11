@@ -1,0 +1,383 @@
+﻿@page "/dashboard"
+@page "/"
+@attribute [Authorize]
+@using ComplianceMan.Common.Models
+@using ComplianceMan.Services
+@using ComplianceMan.Services.Interfaces
+@using System.Security.Claims
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider authenticationStateProvider
+
+<h3>Dashboard</h3>
+
+@if (userCount != null && policyCount != null && teamCount != null)
+{
+    <div class="row">
+
+        <div class="col-12 col-sm-6 col-xl-4 mb-4">
+            <div class="card border-0 shadow">
+                <div class="card-body">
+                    <div class="row d-block d-xl-flex align-items-center">
+                        <div class="col-12 col-xl-5 text-xl-center mb-3 mb-xl-0 d-flex align-items-center justify-content-xl-center">
+                            <div class="icon-shape icon-shape-primary rounded me-4 me-sm-0">
+                                <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
+                            </div>
+                            <div class="d-sm-none">
+                                <h2 class="h5">Users</h2>
+                                <h3 class="fw-extrabold mb-1">@userCount</h3>
+                            </div>
+                        </div>
+                        <div class="col-12 col-xl-7 px-xl-0">
+                            <div class="d-none d-sm-block">
+                                <h2 class="h6 text-gray-400 mb-0">Users</h2>
+                                <h3 class="fw-extrabold mb-2">@userCount</h3>
+                            </div>
+                            <small class="d-flex align-items-center text-gray-500">
+                                Feb 1 - Apr 1,
+                                <svg class="icon icon-xxs text-gray-500 ms-2 me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"></path></svg>
+                                USA
+                            </small>
+                            <div class="small d-flex mt-1">
+                                <div>Since last month <svg class="icon icon-xs text-success" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg><span class="text-success fw-bolder">22%</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-4 mb-4">
+            <div class="card border-0 shadow">
+                <div class="card-body">
+                    <div class="row d-block d-xl-flex align-items-center">
+                        <div class="col-12 col-xl-5 text-xl-center mb-3 mb-xl-0 d-flex align-items-center justify-content-xl-center">
+                            <div class="icon-shape icon-shape-secondary rounded me-4 me-sm-0">
+                                <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"></path></svg>
+                            </div>
+                            <div class="d-sm-none">
+                                <h2 class="fw-extrabold h5">Policy</h2>
+                                <h3 class="mb-1"> @policyCount</h3>
+                            </div>
+                        </div>
+                        <div class="col-12 col-xl-7 px-xl-0">
+                            <div class="d-none d-sm-block">
+                                <h2 class="h6 text-gray-400 mb-0">Policy</h2>
+                                <h3 class="fw-extrabold mb-2"> @policyCount</h3>
+                            </div>
+                            <small class="d-flex align-items-center text-gray-500">
+                                Feb 1 - Apr 1,
+                                <svg class="icon icon-xxs text-gray-500 ms-2 me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"></path></svg>
+                                GER
+                            </small>
+                            <div class="small d-flex mt-1">
+                                <div>Since last month <svg class="icon icon-xs text-danger" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg><span class="text-danger fw-bolder">2%</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-4 mb-4">
+            <div class="card border-0 shadow">
+                <div class="card-body">
+                    <div class="row d-block d-xl-flex align-items-center">
+                        <div class="col-12 col-xl-5 text-xl-center mb-3 mb-xl-0 d-flex align-items-center justify-content-xl-center">
+                            <div class="icon-shape icon-shape-tertiary rounded me-4 me-sm-0">
+                                <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            </div>
+                            <div class="d-sm-none">
+                                <h2 class="fw-extrabold h5"> Teams</h2>
+                                <h3 class="mb-1">@teamCount</h3>
+                            </div>
+                        </div>
+                        <div class="col-12 col-xl-7 px-xl-0">
+                            <div class="d-none d-sm-block">
+                                <h2 class="h6 text-gray-400 mb-0"> Teams</h2>
+                                <h3 class="fw-extrabold mb-2">@teamCount</h3>
+                            </div>
+                            <small class="text-gray-500">
+                                Feb 1 - Apr 1
+                            </small>
+                            <div class="small d-flex mt-1">
+                                <div>Since last month <svg class="icon icon-xs text-success" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg><span class="text-success fw-bolder">4%</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (UserPolicies != null)
+{
+    <h4>User's Policies Compliance</h4>
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="border-0 rounded-start">Policy Name</th>
+                            <th class="border-0">Description</th>
+                            <th class="border-0">Acceptance Date</th>
+                            <th class="border-0 rounded-end">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var userpolicy in UserPolicies)
+                        {
+                            <tr>
+                                <td>@userpolicy.Policy.PolicyName</td>
+                                <td>@userpolicy.Policy.Description</td>
+                                <td>@(userpolicy.AcceptanceDate.ToString() != string.Empty ? userpolicy.AcceptanceDate.ToString("yyyy-MM-dd") : "")</td>
+                                <td>
+                                    @if (userpolicy.AcceptanceDate.ToString() != string.Empty)
+                                    {
+                                        <span class="text-success accepted-label">Accepted</span>
+                                        @*<button class="btn btn-primary" @onclick="() => AcceptPolicy(userpolicy.Policy.PolicyId)">Accept</button>*@
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (userTeams != null)
+{
+    <h4>User Teams as Member</h4>
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="border-0 rounded-start">Team Name</th>
+                            <th class="border-0">My Teams</th>
+                           @* <th class="border-0">Actions</th>*@
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var team in userTeams)
+                        {
+                            <tr>
+                                <td>@team.TeamName</td>
+                                @*<td>@(team.ComplianceStatus ? "Compliant" : "Non-compliant")</td>*@
+@*                                <td>
+                                    <button class="btn btn-primary" @onclick="() => ViewTeamMembers(team.TeamId)">View Members</button>
+
+                                </td>*@
+                                <td>
+                                    <button class="btn btn-tertiary" @onclick="() => ShowTeamMembersModal(team.TeamId)">View Members</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@if (allTeams != null)
+{
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="border-0 rounded-start">Team Name</th>
+                            <th class="border-0">Compliance Status</th>
+                            <th class="border-0">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var team in allTeams)
+                        {
+                            <tr>
+                                <td>@team.TeamName</td>
+                                <td>
+                                    @*<td>@(team.ComplianceStatus ? "Compliant" : "Non-compliant")</td>*@
+                                    <div class="row d-flex align-items-center">
+@*                                        <div class="col-12 col-xl-2 px-0">
+                                            @if (team.ComplianceStatus)
+                                            {
+                                                <div class="small fw-bold text-success">Compliant</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="small fw-bold text-danger">Non-compliant</div>
+                                            }
+                                        </div>*@
+                                        <div class="col-12 col-xl-10 px-0 px-xl-1">
+                                            <div class="progress progress-lg mb-0">
+                                                @*<div class="progress-bar bg-dark" role="progressbar" aria-valuenow="@(team.ComplianceStatus ? 100 : 0)" aria-valuemin="0" aria-valuemax="100" style="width: @(team.ComplianceStatus ? 100 : 0)%"></div>*@
+                                                @*<div class="progress-bar bg-dark" role="progressbar" aria-valuenow="@(team.TeamName ? 100 : 0)" aria-valuemin="0" aria-valuemax="100" style="width: @(team.ComplianceStatus ? 100 : 0)%"></div>*@
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn btn-primary" @onclick="() => ViewTeamMembers(team.TeamId)">View Members</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+
+<!-- Team Members Modal -->
+@if (selectedTeamId.HasValue && showTeamMembersModal)
+{
+    <div class="modal" tabindex="-1" style="display: block;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Team Members</h5>
+                    <button type="button" class="btn-close" @onclick="CloseTeamMembersModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (teamMembers != null)
+                    {
+                        @if (teamMembers.Count > 0)
+                        {
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>User Name</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var member in teamMembers)
+                                    {
+                                        <tr>
+                                            <td>@member.UserName</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <p>No team members found.</p>
+                        }
+                    }
+                    else
+                    {
+                        <p>Loading team members...</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+@code {
+    private int? userCount;
+    private int? policyCount;
+    private int? teamCount;
+
+    private List<UserPolicy> UserPolicies;
+    private List<Team> userTeams;
+    private List<Team> allTeams;
+
+    private User CurrentUser { get; set; }
+
+    private string currentUserCode;
+    private bool showTeamMembersModal = false;
+    int? selectedTeamId;
+    List<User> teamMembers;
+
+    [Parameter]
+    public int TeamID { get; set; }
+
+    [Inject]
+    private IUserService userService { get; set; }
+
+    [Inject]
+    private IPolicyService policyService { get; set; }
+
+    [Inject]
+    private ITeamService teamService { get; set; }
+
+    [Inject]
+    private IUserPolicyService userPolicyService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        userCount = await userService.GetUserCount();
+        policyCount = await policyService.GetPolicyCount();
+        teamCount = await teamService.GetTeamCount();
+
+
+        var authenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authenticationState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            currentUserCode = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            CurrentUser = await userService.GetUserByUserCode(currentUserCode);
+            if (CurrentUser is null)
+            {
+                // Redirect to create user
+                NavigationManager.NavigateTo($"/usermanagement/{currentUserCode}");
+                return;
+            }
+        }
+
+        UserPolicies = await userPolicyService.GetUserPolicies(CurrentUser.UserId);
+        userTeams = await teamService.GetTeamsByUser(CurrentUser.UserId);
+        allTeams = await teamService.GetTeams();
+    }
+
+    private async Task ShowTeamMembersModal(int teamId)
+    {
+        showTeamMembersModal = true;
+        selectedTeamId = teamId;
+        await LoadTeamMembers(teamId);
+    }
+
+    private async Task LoadTeamMembers(int teamId)
+    {
+        teamMembers = await teamService.GetTeamMembers(teamId);
+    }
+
+    private void CloseTeamMembersModal()
+    {
+        showTeamMembersModal = false;
+        selectedTeamId = null;
+    }
+
+    private async Task AcceptPolicy(int policyId)
+    {
+        if (CurrentUser is null)
+        {
+            // Redirect to create user
+            NavigationManager.NavigateTo($"/usermanagement/{currentUserCode}");
+            return;
+        }
+        else
+        {
+            await policyService.AcceptPolicy(policyId, CurrentUser.UserId);
+            UserPolicies = await userPolicyService.GetUserPolicies(CurrentUser.UserId); // Refresh the list after accepting
+        }
+    }
+
+    private void ViewTeamMembers(int teamId)
+    {
+        // Navigate to the team members page passing the teamId
+        NavigationManager.NavigateTo($"/teammembers/{teamId}");
+    }
+}

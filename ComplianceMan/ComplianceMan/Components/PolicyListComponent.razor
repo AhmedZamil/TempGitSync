@@ -1,0 +1,529 @@
+﻿@page "/policylist"
+@using ComplianceMan.Services.Interfaces
+@using System.Security.Claims
+@using Syncfusion.DocIO.DLS;
+@using Syncfusion.DocIO;
+
+@inject IPolicyService PolicyService
+@inject IUserPolicyService UserPolicyService
+@inject ITeamService TeamService
+@inject IFileService FileService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager navigationManager
+
+
+
+
+<!-- Add policy button -->
+<button class="btn btn-outline-success" @onclick="ShowAddPolicyModal">Add Policy</button>
+
+<!-- Add policy modal -->
+@*@if (showAddPolicyModal)
+{
+  <CreatePolicy OnPolicyCreated="CreatePolicy"></CreatePolicy>
+}*@
+
+
+<h3>Policies</h3>
+
+@if (policies != null && policies.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Policy Title</th>
+                <th>Description</th>
+                <th>Acceptance Date</th>
+                <th>Team</th>
+                <th>Files</th>
+                <th>Preview</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var policy in policies)
+            {
+                <tr>
+                    <td>@policy.PolicyName</td>
+                    <td>@policy.Description</td>
+                    <td>@GetAcceptanceDate(policy)</td>
+                    <td>
+                        <button class="btn btn-tertiary" @onclick="() => ShowTeamModal(policy)">See Team</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-tertiary" @onclick="() => ShowFilesModal(policy)">See Files</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => ShowPreviewModal(policy)">Preview Policy</button>
+                    </td>
+                    <td>
+                        @if (IsPolicyAccepted(policy))
+                        {
+                            <span class="text-success accepted-label">Accepted</span>
+                        }
+                        else
+                        {
+                            <button class="btn btn-success" @onclick="() => AcceptPolicy(policy.PolicyId)">Accept</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No policies found.</p>
+}
+
+<!-- Accept Modal -->
+<div class="modal" tabindex="-1" role="dialog" style="display: @(showAcceptModal ? "block" : "none")">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="acceptModalLabel">Accept Policy</h5>
+                <button type="button" class="close" @onclick="CloseAcceptModal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label>
+                    <input type="checkbox" @bind="isAgreed" />
+                    I agree to the terms and conditions.
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseAcceptModal">Close</button>
+                <button type="button" class="btn btn-primary" @onclick="() => AcceptPolicyAction(selectedPolicy.PolicyId)" disabled="@(!isAgreed)">Agree</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- Team Modal -->
+<div class="modal" tabindex="-1" role="dialog" style="@teamModalStyle">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="teamModalLabel">Team Members</h5>
+                <button type="button" class="close" @onclick="CloseTeamModal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                @if (selectedPolicy != null)
+                {
+                    <p>Team members associated with policy: @selectedPolicy.PolicyName</p>
+                    @if (teams != null && teams.Any())
+                    {
+                        <ul>
+                            @foreach (var team in teams)
+                            {
+                                <li>@team.TeamName</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p>No team members found.</p>
+                    }
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseTeamModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Files Modal -->
+<div class="modal" tabindex="-1" role="dialog" style="@filesModalStyle">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filesModalLabel">Policy Files</h5>
+                <button type="button" class="close" @onclick="CloseFilesModal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                @if (selectedPolicy != null)
+                {
+                    <p>Files associated with policy: @selectedPolicy.PolicyName</p>
+                    @if (policyFiles != null && policyFiles.Any())
+                    {
+                        <ul>
+                            @foreach (var file in policyFiles)
+                            {
+                                <li>@file.FileName</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p>No files found.</p>
+                    }
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseFilesModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Preview Modal -->
+<div class="modal" tabindex="-1" role="dialog" style="display: @(showPreviewModal ? "block" : "none")">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Preview Policy</h5>
+                <button type="button" class="close" @onclick="ClosePreviewModal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                @if (selectedFileForPreview != null)
+                {
+                    <p>Previewing file: @selectedFileForPreview.FileName</p>
+                    <div>@RenderFilePreview(selectedFileForPreview)</div>
+                }
+                else
+                {
+                    <p>No file found for preview.</p>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="ClosePreviewModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private List<Policy> policies;
+    private List<UserPolicy> userPolicies;
+    private List<Team> teams;
+    private List<FileCM> policyFiles;
+    private Policy selectedPolicy;
+    private User currentUser;
+    Policy newPolicy = new Policy();
+
+    private string currentUserCode;
+
+    bool showAddPolicyModal = false;
+    private FileCM selectedFile;
+
+    private bool showPreviewModal = false;
+    private FileCM selectedFileForPreview;
+
+    bool showAcceptModal = false;
+    bool isAgreed = false;
+
+    //private EventCallback<InputFileChangeEventArgs> fileChangeCallback;
+
+    [Inject]
+    private IUserService userService { get; set; }
+
+    [Inject]
+    private IPolicyService policyService { get; set; }
+
+    private string teamModalStyle = "display: none;";
+    private string filesModalStyle = "display: none;";
+
+    delegate void FileChangeCallback(InputFileChangeEventArgs e);
+    private FileChangeCallback fileChangeCallback;
+
+    protected override async Task OnInitializedAsync()
+    {
+        policies = await PolicyService.GetPolicies();
+
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authenticationState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            try
+            {
+                currentUserCode = user.FindFirstValue(ClaimTypes.NameIdentifier);
+                currentUser = await userService.GetUserByUserCode(currentUserCode);
+                if (currentUser is not null)
+                {
+                    userPolicies = await UserPolicyService.GetUserPolicies(currentUser.UserId);
+                }
+                else
+                {
+                    userPolicies = new List<UserPolicy>();
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                
+            
+            }
+
+        }
+
+       
+    }
+
+    private async Task ShowPreviewModal(Policy policy)
+    {
+        selectedPolicy = policy;
+        policyFiles = await FileService.GetPolicyFiles(policy.PolicyId);
+        selectedFileForPreview = policyFiles.FirstOrDefault(); // Assuming you want to preview the first file associated with the policy
+        showPreviewModal = true;
+    }
+
+    private RenderFragment RenderFilePreview(FileCM file)
+    {
+        if (file.FileName.EndsWith(".docx", StringComparison.OrdinalIgnoreCase))
+        {
+            return builder =>
+            {
+                var docStream = new MemoryStream(file.FileData);
+                var document = new WordDocument();
+                document.Open(docStream, FormatType.Docx);
+
+                var htmlStream = new MemoryStream();
+                document.Save(htmlStream, FormatType.Html);
+                htmlStream.Position = 0;
+
+                builder.OpenElement(0, "div");
+                builder.AddMarkupContent(1, GetStringFromStream(htmlStream));
+                builder.CloseElement();
+            };
+        }
+        else
+        {
+            return builder => builder.AddContent(0, "Preview not available for this file type.");
+        }
+    }
+
+
+    private string GetStringFromStream(Stream stream)
+    {
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    }
+
+
+    //private RenderFragment RenderFilePreview(FileCM file)
+    //{
+    //    string fileExtension = Path.GetExtension(file.FileName);
+
+    //    if (fileExtension.Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+    //    {
+    //        return builder =>
+    //        {
+    //            builder.OpenElement(0, "embed");
+    //            builder.AddAttribute(1, "src", $"data:application/pdf;base64,{Convert.ToBase64String(file.FileData)}");
+    //            builder.AddAttribute(2, "width", "100%");
+    //            builder.AddAttribute(3, "height", "600px");
+    //            builder.CloseElement();
+    //        };
+    //    }
+    //    else if (fileExtension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
+    //    {
+    //        // Handle DOCX files using a different approach, such as a library or external service that supports rendering Word documents.
+    //        // You can use a third-party library like Syncfusion.DocIO to convert the DOCX file to HTML and render it in the modal.
+    //        // Here's a simplified example using Syncfusion.DocIO:
+
+    //        return builder =>
+    //        {
+    //            builder.OpenElement(0, "div");
+    //            builder.AddMarkupContent(1, ConvertDocxToHtml(file.FileData));
+    //            builder.CloseElement();
+    //        };
+    //    }
+    //    else
+    //    {
+    //        return builder => builder.AddContent(0, "Preview not available for this file type.");
+    //    }
+    //}
+
+    //private string ConvertDocxToHtml(byte[] fileData)
+    //{
+    //    using (var stream = new MemoryStream(fileData))
+    //    {
+    //        using (var document = new WordDocument(stream))
+    //        {
+    //            // Convert the DOCX document to HTML using Syncfusion.DocIO
+    //            // Replace this with the appropriate code based on your chosen library or approach.
+    //            // Here's a simplified example using Syncfusion.DocIO:
+
+    //            var htmlExport = new HtmlExport(document);
+    //            var htmlString = htmlExport.ToHTML();
+
+    //            return htmlString;
+    //        }
+    //    }
+    //}
+
+
+    //private RenderFragment RenderFilePreview(FileCM file)
+    //{
+    //    if (file.FileName.EndsWith(".docx", StringComparison.OrdinalIgnoreCase))
+    //    {
+    //        return builder =>
+    //        {
+    //            builder.OpenElement(0, "iframe");
+    //            builder.AddAttribute(1, "src", $"data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,{Convert.ToBase64String(file.FileData)}");
+    //            builder.CloseElement();
+    //        };
+    //    }
+    //    else
+    //    {
+    //        return builder => builder.AddContent(0, "Preview not available for this file type.");
+    //    }
+    //}
+
+    private void ClosePreviewModal()
+    {
+        showPreviewModal = false;
+        selectedFileForPreview = null;
+    }
+
+
+    private async Task HandleFileChangeWrapper(InputFileChangeEventArgs e)
+    {
+        await HandleFileChange(e);
+    }
+
+    private async Task FileChange(InputFileChangeEventArgs e)
+    {
+        // Do something with the file that was changed.
+    }
+
+    private async Task HandleFileChange(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (file != null)
+        {
+            var fileData = new byte[file.Size];
+            await using var memoryStream = new MemoryStream();
+            await file.OpenReadStream().CopyToAsync(memoryStream);
+            fileData = memoryStream.ToArray();
+
+            var newFile = new FileCM
+                {
+                    FileName = file.Name,
+                    FileData = fileData
+                };
+
+            newPolicy.Files.Add(newFile);
+        }
+    }
+
+
+
+
+
+
+    private bool IsPolicyAccepted(Policy policy)
+    {
+        if (userPolicies != null && userPolicies.Any())
+        {
+            return userPolicies.Any(up => up.PolicyId == policy.PolicyId);
+        }
+        return false;
+    }
+
+    private string GetAcceptanceDate(Policy policy)
+    {
+        var userPolicy = userPolicies?.FirstOrDefault(up => up.PolicyId == policy.PolicyId);
+        return userPolicy != null ? userPolicy.AcceptanceDate.ToShortDateString() : string.Empty;
+    }
+
+    private async Task AcceptPolicyAction(int policyId)
+    {
+        if (currentUser != null)
+        {
+            await PolicyService.AcceptPolicy(policyId, currentUser.UserId);
+            userPolicies = await UserPolicyService.GetUserPolicies(currentUser.UserId);
+        }
+
+        CloseAcceptModal();
+    }
+
+    private void CloseAcceptModal()
+    {
+        showAcceptModal = false;
+        isAgreed = false;
+    }
+
+    private void AcceptPolicyAction()
+    {
+        // Perform the policy acceptance action here
+        // ...
+
+        CloseAcceptModal();
+    }
+
+    private void AcceptPolicy(int policyId)
+    {
+        selectedPolicy = policies.FirstOrDefault(p => p.PolicyId == policyId);
+        showAcceptModal = true;
+    }
+
+    private async Task CreatePolicy()
+    {
+        await policyService.CreatePolicy(newPolicy);
+        newPolicy = new Policy(); // Clear the form
+        policies = await policyService.GetPolicies(); // Refresh the policy list
+        HideAddPolicyModal(); // Hide the modal after creating a policy
+    }
+
+    private void ShowAddPolicyModal()
+    {
+        showAddPolicyModal = true;
+        navigationManager.NavigateTo($"/createpolicy");
+
+    }
+
+    private void HideAddPolicyModal()
+    {
+        showAddPolicyModal = false;
+    }
+
+    //private async void ShowTeamModal(Policy policy)
+    //{
+    //    selectedPolicy = policy;
+    //    teams = await TeamService.GetTeamsByPolicy(policy.PolicyId);
+    //    teamModalStyle = "display: block;";
+    //}
+
+    private async Task ShowTeamModal(Policy policy)
+    {
+        selectedPolicy = policy;
+        teams = await TeamService.GetTeamsByPolicy(policy.PolicyId);
+        teamModalStyle = "display: block;";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ShowFilesModal(Policy policy)
+    {
+        selectedPolicy = policy;
+        policyFiles = await FileService.GetPolicyFiles(policy.PolicyId);
+        filesModalStyle = "display: block;";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void CloseTeamModal()
+    {
+        teamModalStyle = "display: none;";
+    }
+
+    private void CloseFilesModal()
+    {
+        filesModalStyle = "display: none;";
+    }
+}

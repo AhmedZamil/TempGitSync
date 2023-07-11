@@ -1,0 +1,39 @@
+﻿@page "/login"
+@using ComplianceMan.Services.Interfaces;
+@using Microsoft.Extensions.Options;
+@using Microsoft.Identity.Client;
+@inject NavigationManager NavigationManager
+@inject IAzureAdAuthenticationService AzureAdAuthenticationService
+@inject IOptions<AuthenticationConfig> AuthConfigOptions
+
+<h3>Login</h3>
+
+<p>Sign in using Azure AD:</p>
+<button @onclick="LoginWithAzureAD">Sign In</button>
+
+@code {
+    private async Task LoginWithAzureAD()
+    {
+        var _authConfig = AuthConfigOptions.Value;
+        var pca = PublicClientApplicationBuilder.Create(_authConfig.ClientId)
+            .WithAuthority(AzureCloudInstance.AzurePublic, _authConfig.TenantId)
+            .WithRedirectUri(_authConfig.RedirectUri)
+            .Build();
+
+        var scopes = new[] { "openid", "profile", "email" };
+
+        var result = await pca.AcquireTokenInteractive(scopes)
+            .ExecuteAsync();
+
+        // Handle the authentication result, e.g., store access token, perform user lookup, etc.
+        if (!string.IsNullOrEmpty(result.AccessToken))
+        {
+            var username = result.Account.Username;
+
+            var user = await AzureAdAuthenticationService.HandleAzureAdAuthentication(username, result.AccessToken);
+        }
+
+        // After successful login, redirect to the home page
+        NavigationManager.NavigateTo("/");
+    }
+}

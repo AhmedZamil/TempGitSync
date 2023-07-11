@@ -1,0 +1,123 @@
+﻿@using ComplianceMan.Services.Interfaces;
+@using System.Security.Claims;
+@inject IUserService UserService
+@inject ITeamService TeamService
+@inject AuthenticationStateProvider authenticationStateProvider
+
+<h3>Team Members</h3>
+
+@if (CurrentTeam != null)
+{
+    <p>Current Team: @CurrentTeam.TeamName</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>User Name</th>
+                <th>User Code</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var member in CurrentTeam.Users)
+            {
+                <tr>
+                    <td>@member.UserName</td>
+                    <td>@member.UserCode</td>
+                    <td>
+                        <button @onclick="() => RemoveUserFromTeam(member.UserId)">Remove</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No team selected.</p>
+}
+
+<h3>My Teams</h3>
+
+@if (Teams != null)
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Team Name</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var team in Teams)
+            {
+                <tr>
+                    <td>@team.TeamName</td>
+                    <td>
+                        @if (IsUserInTeam(team.TeamId))
+                        {
+                            <span>Member</span>
+                        }
+                        else
+                        {
+                            <button @onclick="() => AssignUserToTeam(team.TeamId)">Assign</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No teams available.</p>
+}
+
+@code {
+    private Team CurrentTeam { get; set; }
+    private List<Team> Teams { get; set; }
+
+    private string currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authenticationState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+        var userId = string.IsNullOrEmpty(currentUserId) ? Int32.Parse(currentUserId) : 0;// Get the ID of the current logged-in user
+        // Get the ID of the current logged-in user
+        //CurrentTeam = await UserService.GetTeamByUserId(userId);
+        Teams = await TeamService.GetTeamsByUser(userId);
+    }
+
+    private bool IsUserInTeam(int teamId)
+    {
+        return Teams?.Any(t => t.TeamId == teamId) ?? false;
+    }
+
+    private async Task AssignUserToTeam(int teamId)
+    {
+
+        var authenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authenticationState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+        var userId = string.IsNullOrEmpty(currentUserId) ? Int32.Parse(currentUserId) : 0;// Get the ID of the current logged-in user
+
+        await TeamService.AssignUserToTeam(userId, teamId);
+        Teams = await TeamService.GetTeamsByUser(userId);
+    }
+
+    private async Task RemoveUserFromTeam(int userId)
+    {
+        //await TeamService.RemoveUserFromTeam(userId);
+        //CurrentTeam = await UserService.GetTeamByUserId(userId);
+    }
+}

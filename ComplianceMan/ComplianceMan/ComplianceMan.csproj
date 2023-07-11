@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\vendor\sass\node_modules\immutable\dist\immutable.es.js" />
+    <None Include="wwwroot\vendor\sass\node_modules\immutable\dist\immutable.js.flow" />
+    <None Include="wwwroot\vendor\sass\node_modules\immutable\dist\immutable.min.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Auth0.AspNetCore.Authentication" Version="1.2.0" />
+    <PackageReference Include="AutoMapper" Version="12.0.1" />
+    <PackageReference Include="BlazorStrap" Version="5.1.102.51923" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.AzureAD.UI" Version="6.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="6.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="6.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.54.1" />
+    <PackageReference Include="Syncfusion.DocIO.Net.Core" Version="22.1.36" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ComplianceMan.Common\ComplianceMan.Common.csproj" />
+    <ProjectReference Include="..\ComplianceMan.OAuthConnector.Core\Milbix.OAuthConnector.Core.csproj" />
+    <ProjectReference Include="..\ComplianceMan.Services\ComplianceMan.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\vendor\chartist\dist\scss\settings\" />
+    <Folder Include="wwwroot\vendor\sass\types\legacy\" />
+    <Folder Include="wwwroot\vendor\sass\types\logger\" />
+    <Folder Include="wwwroot\vendor\sass\types\util\" />
+    <Folder Include="wwwroot\vendor\sass\types\value\" />
+    <Folder Include="wwwroot\vendor\waypoints\src\" />
+    <Folder Include="wwwroot\vendor\waypoints\test\" />
+  </ItemGroup>
+
+</Project>

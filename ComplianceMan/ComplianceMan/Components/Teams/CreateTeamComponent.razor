@@ -1,0 +1,119 @@
+﻿@page "/teams/create"
+@inject ITeamService teamService
+@inject IUserService userService
+@inject IPolicyService policyService
+@inject NavigationManager navigationManager
+
+<div class="card p-3 p-lg-4">
+    <form>
+        <div class="form-group mb-4">
+            <label for="teamName">Team Name</label>
+            <div class="input-group">
+                <span class="input-group-text" id="basic-addon1">
+                    <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
+                </span>
+                <input type="text" class="form-control" id="teamName" @bind="@teamName" />
+            </div>
+        </div>
+        <div class="form-group mb-4">
+            <label for="users">Users</label>
+            @if (users != null && users.Any())
+            {
+                <h6>Select users to assign:</h6>
+                <select multiple class="form-control" @onchange="AssignUsersChanged">
+                    @foreach (var user in users)
+                    {
+                        <option value="@user.UserId">@user.UserName</option>
+                    }
+                </select>
+            }
+
+
+        </div>
+
+        <div class="form-group mb-4">
+            <label for="polices">Polices</label>
+            @if (policies != null && policies.Any())
+            {
+                <h6>Select policies to assign:</h6>
+                <select multiple class="form-control" @onchange="AssignPoliciesChanged">
+                    @foreach (var policy in policies)
+                    {
+                        <option value="@policy.PolicyId">@policy.PolicyName</option>
+                    }
+                </select>
+            }
+
+
+        </div>
+
+
+        <div class="d-grid">
+            <button type="button" class="btn btn-gray-800" @onclick="CreateTeam">Create</button>
+        </div>
+    </form>
+</div>
+
+@code {
+    private string teamName;
+    private List<User> users;
+    private List<Policy> policies;
+    //private List<int> selectedUsers = new List<int>();
+    //private List<int> selectedPolicies = new List<int>();
+    List<string> selectedUsers = new List<string>();
+    private List<string> selectedPolicies = new List<string>();
+
+    [Parameter]
+    public EventCallback OnTeamCreated { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = await userService.GetUsers();
+        policies = await policyService.GetPolicies();
+    }
+
+    private async Task CreateTeam()
+    {
+        if (!string.IsNullOrEmpty(teamName))
+        {
+            var team = new Team { TeamName = teamName };
+            //await teamService.CreateTeam(team);
+            team.Users = users.Where(u => selectedUsers.Contains(u.UserId.ToString())).ToList();
+            team.Policies = policies.Where(p => selectedPolicies.Contains(p.PolicyId.ToString())).ToList();
+            await teamService.CreateTeam(team);
+            await OnTeamCreated.InvokeAsync();
+            navigationManager.NavigateTo("/teamslist");
+        }
+    }
+
+    private async Task TeamCreated()
+    {
+        await Task.Delay(100); // Delay to allow the UI to update before raising the event
+        await OnTeamCreated.InvokeAsync(); // Raise the event
+        navigationManager.NavigateTo("/teamslist");
+    }
+
+    private void AssignUsersChanged(ChangeEventArgs e)
+    {
+        if (e.Value is not null)
+        {
+            selectedUsers = ((IEnumerable<string>)e.Value).ToList();
+        }
+        else
+        {
+            selectedUsers.Clear();
+        }
+    }
+
+    private void AssignPoliciesChanged(ChangeEventArgs e)
+    {
+        if (e.Value is not null)
+        {
+            selectedPolicies = ((IEnumerable<string>)e.Value).ToList();
+        }
+        else
+        {
+            selectedPolicies.Clear();
+        }
+    }
+}

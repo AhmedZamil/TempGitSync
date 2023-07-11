@@ -1,0 +1,82 @@
+﻿@page "/teams/{teamId:int}/assign-policies"
+@inject ITeamService teamService
+@inject IPolicyService policyService
+@inject NavigationManager navigationManager
+
+<h3>Assign Policies</h3>
+
+@if (policies != null && policies.Count > 0)
+{
+    <form>
+        <div class="form-group">
+            <label for="policyIds">Select Policies</label>
+            <select multiple class="form-control" id="policyIds" @onchange="AssignPoliciesChanged">
+                @foreach (var policy in policies)
+                {
+                    <option value="@policy.PolicyId" selected="@selectedPolicyIds.Contains(policy.PolicyId)">@policy.PolicyName</option>
+                }
+            </select>
+        </div>
+        <button type="button" class="btn btn-primary" @onclick="AssignPolicies">Assign</button>
+    </form>
+}
+else
+{
+    <p>No policies found.</p>
+}
+
+@code {
+    private List<Policy> policies;
+    private List<int> selectedPolicyIds = new List<int>();
+
+    [Parameter]
+    public int TeamId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        policies = await policyService.GetPolicies();
+    }
+
+    private async Task AssignPolicies()
+    {
+        await teamService.AssignPoliciesToTeam(selectedPolicyIds, TeamId);
+        navigationManager.NavigateTo($"/teamslist");
+    }
+
+    private void AssignPoliciesChanged(ChangeEventArgs e)
+    {
+        selectedPolicyIds = new List<int>();
+        if (e.Value is not null)
+        {
+            // selectedUsers = ((IEnumerable<string>)e.Value).ToList();
+            //var policyIdStrings = e.Value.ToString()
+            //                            .Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            //var policyIdStrings = e.Value.ToString()
+            //                .Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            var policyIdStrings = ((IEnumerable<string>)e.Value).ToList();
+            foreach (var policyIdString in policyIdStrings)
+            {
+                if (int.TryParse(policyIdString, out int policyId))
+                {
+                    selectedPolicyIds.Add(policyId);
+                }
+            }
+        }
+    }
+
+    //private void AssignPoliciesChanged(ChangeEventArgs e)
+    //{
+    //    //&& e.Value.GetType() == typeof(IEnumerable<string>)
+    //    if (e.Value is not null)
+    //    {
+    //        selectedPolicyIds = ((IEnumerable<int>)e.Value).ToList();
+    //    }
+    //    else
+    //    {
+    //        selectedPolicyIds.Clear();
+    //    }
+    //}
+
+}
